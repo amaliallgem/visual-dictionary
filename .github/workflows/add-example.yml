@@ -1,0 +1,74 @@
+name: Add approved examples
+
+# When a maintainer adds the `approved` label to an issue created from the
+# app's "Add an example" page, append its rows to data/catalog.csv, check them,
+# commit, redeploy the site and close the issue.
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: write
+  issues: write
+  actions: write
+
+concurrency:
+  group: catalog-write
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    if: github.event.label.name == 'approved'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Append rows from the issue
+        id: ingest
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: python scripts/ingest_issue.py
+
+      - name: Validate the catalog
+        id: build
+        run: python scripts/build.py > build.log 2>&1 || (cat build.log; exit 1)
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/catalog.csv
+          git commit -m "Add examples from #${{ github.event.issue.number }}"
+          git push
+
+      # Pushes made with GITHUB_TOKEN don't trigger other workflows, so start the deploy explicitly.
+      - name: Redeploy the site
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --ref ${{ github.event.repository.default_branch }}
+
+      - name: Report and close the issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPORT: ${{ steps.ingest.outputs.report }}
+        run: |
+          printf '%s\n\nThe site will update in a minute or two.' "$REPORT" > comment.md
+          gh issue comment ${{ github.event.issue.number }} --body-file comment.md
+          gh issue close ${{ github.event.issue.number }}
+
+      - name: Report a problem
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo "Couldn't add these examples. Please fix the CSV in the issue and re-apply the \`approved\` label."
+            echo
+            echo '```'
+            cat build.log 2>/dev/null || echo "See the workflow log for details."
+            echo '```'
+          } > comment.md
+          gh issue comment ${{ github.event.issue.number }} --body-file comment.md

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Visual Dictionary of Infrastructure</title>
+  <meta name="description" content="A searchable visual dictionary of energy and other infrastructure as seen in satellite imagery.">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="#/">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>
+          <strong>Visual Dictionary</strong>
+          <small>Infrastructure from above</small>
+        </span>
+      </a>
+      <nav class="tabs" aria-label="Views">
+        <a href="#/" data-view="browse">Browse</a>
+        <a href="#/index" data-view="index">A–Z index</a>
+        <a href="#/categories" data-view="categories">By category</a>
+        <a href="#/map" data-view="map">Map</a>
+        <a href="#/add" data-view="add">+ Add</a>
+        <a href="#/about" data-view="about">About</a>
+      </nav>
+      <label class="search">
+        <span class="visually-hidden">Search</span>
+        <input id="search" type="search" placeholder="Search: jetty, LNG, Poland…" autocomplete="off">
+      </label>
+    </div>
+  </header>
+
+  <main id="main" class="container" tabindex="-1">
+    <p class="loading">Loading…</p>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      Open-source visual dictionary. Imagery streams live from Esri; example locations from Global Energy Monitor (CC BY 4.0).
+      <a href="#/about">About the imagery</a>
+      <span id="generated"></span>
+    </div>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

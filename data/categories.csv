@@ -1,0 +1,11 @@
+category_id,name,color,description
+coal,Coal,#4a4a4a,"Coal mining, handling, shipping and coal-fired power."
+oil,Oil,#9a5b13,"Oil and gas extraction, refining, storage, pipelines and oil-fired power."
+gas,Natural gas,#1f6fb4,"Gas processing, pipelines, compression, storage and gas-fired power."
+lng,LNG,#6a3d9a,"Liquefied natural gas: liquefaction, regasification, storage and shipping."
+renewables,Renewables & bioenergy,#2e8b3a,"Solar, wind, hydropower, geothermal, bioenergy and battery storage."
+nuclear,Nuclear,#c28a00,Nuclear power stations.
+grid,Electricity grid,#c8323c,"Transmission, conversion and switching of electricity."
+industry,Heavy industry,#a0522d,"Iron and steel, cement, chemicals, metals, mining and large energy users."
+transport,Transport,#5b6770,"Railways, roads, airports and overland conveyors."
+maritime,Maritime,#16858a,"Ports, jetties, moorings and ships."
