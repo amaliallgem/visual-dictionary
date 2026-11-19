@@ -12,6 +12,9 @@ permissions:
   issues: write
   actions: write
 
+# Approvals run one at a time. Each run also starts from the latest main and
+# retries if another change lands first, so approvals made close together
+# all go through.
 concurrency:
   group: catalog-write
   cancel-in-progress: false
@@ -22,27 +25,44 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Append rows from the issue
-        id: ingest
+      # Fetch the latest catalog, add the rows, check them and push.
+      # If the push is rejected because main moved, start again from the new main.
+      - name: Add rows, validate and push
+        id: add
         env:
           ISSUE_BODY: ${{ github.event.issue.body }}
-        run: python scripts/ingest_issue.py
-
-      - name: Validate the catalog
-        id: build
-        run: python scripts/build.py > build.log 2>&1 || (cat build.log; exit 1)
-
-      - name: Commit and push
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/catalog.csv
-          git commit -m "Add examples from #${{ github.event.issue.number }}"
-          git push
+          for attempt in 1 2 3 4; do
+            git fetch -q origin "$BRANCH"
+            git reset -q --hard "origin/$BRANCH"
+            if ! GITHUB_OUTPUT= python scripts/ingest_issue.py > ingest.log 2>&1; then
+              echo "reason=submission" >> "$GITHUB_OUTPUT"; cat ingest.log; exit 1
+            fi
+            if ! python scripts/build.py > build.log 2>&1; then
+              echo "reason=validation" >> "$GITHUB_OUTPUT"; cat build.log; exit 1
+            fi
+            git add data/catalog.csv
+            git commit -q -m "Add examples from #$ISSUE_NUMBER"
+            if git push -q origin "HEAD:$BRANCH"; then
+              { echo "report<<EOF_REPORT"; cat ingest.log; echo "EOF_REPORT"; } >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "Push rejected (attempt $attempt): main changed. Retrying from the latest main..."
+            sleep $((attempt * 5))
+          done
+          echo "reason=push" >> "$GITHUB_OUTPUT"
+          exit 1
 
       # Pushes made with GITHUB_TOKEN don't trigger other workflows, so start the deploy explicitly.
       - name: Redeploy the site
@@ -53,7 +73,7 @@ jobs:
       - name: Report and close the issue
         env:
           GH_TOKEN: ${{ github.token }}
-          REPORT: ${{ steps.ingest.outputs.report }}
+          REPORT: ${{ steps.add.outputs.report }}
         run: |
           printf '%s\n\nThe site will update in a minute or two.' "$REPORT" > comment.md
           gh issue comment ${{ github.event.issue.number }} --body-file comment.md
@@ -63,12 +83,21 @@ jobs:
         if: failure()
         env:
           GH_TOKEN: ${{ github.token }}
+          REASON: ${{ steps.add.outputs.reason }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           {
-            echo "Couldn't add these examples. Please fix the CSV in the issue and re-apply the \`approved\` label."
-            echo
-            echo '```'
-            cat build.log 2>/dev/null || echo "See the workflow log for details."
-            echo '```'
+            case "$REASON" in
+              submission)
+                echo "Couldn't read the submission. Please fix the CSV block in the issue, then remove and re-add the \`approved\` label."
+                echo; echo '```'; cat ingest.log; echo '```' ;;
+              validation)
+                echo "The submitted rows didn't pass the data checks. Please fix the CSV block in the issue, then remove and re-add the \`approved\` label."
+                echo; echo '```'; cat build.log; echo '```' ;;
+              push)
+                echo "The rows were valid, but saving them failed because the catalog kept changing at the same time. Nothing is wrong with the submission: remove and re-add the \`approved\` label to try again." ;;
+              *)
+                echo "Something went wrong while adding these examples. The submission may be fine. See the [workflow run]($RUN_URL) for details, then remove and re-add the \`approved\` label to try again." ;;
+            esac
           } > comment.md
           gh issue comment ${{ github.event.issue.number }} --body-file comment.md
