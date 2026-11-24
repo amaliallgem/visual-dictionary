@@ -1,8 +1,8 @@
 name: Add approved examples
 
 # When a maintainer adds the `approved` label to an issue created from the
-# app's "Add an example" page, append its rows to data/catalog.csv, check them,
-# commit, redeploy the site and close the issue.
+# app's "Add an example" page, append its rows to data/catalog.csv, add a
+# CHANGELOG.md entry, check them, commit, redeploy the site and close the issue.
 on:
   issues:
     types: [labeled]
@@ -52,7 +52,7 @@ jobs:
             if ! python scripts/build.py > build.log 2>&1; then
               echo "reason=validation" >> "$GITHUB_OUTPUT"; cat build.log; exit 1
             fi
-            git add data/catalog.csv
+            git add data/catalog.csv CHANGELOG.md
             git commit -q -m "Add examples from #$ISSUE_NUMBER"
             if git push -q origin "HEAD:$BRANCH"; then
               { echo "report<<EOF_REPORT"; cat ingest.log; echo "EOF_REPORT"; } >> "$GITHUB_OUTPUT"

@@ -3,6 +3,10 @@
 Newest entries first.
 
 ## 2026-11-24 · main
+Approved submissions now add their own changelog entry, in the same commit as the new catalog rows, so every change to the repo is logged here.
+- Files: `scripts/ingest_issue.py`, `.github/workflows/add-example.yml`, `CHANGELOG.md`
+
+## 2026-11-24 · main
 Started this changelog and added CLAUDE.md, which asks for an entry here with every change. Entries below were filled in from the earlier commit history.
 - Files: `CHANGELOG.md`, `CLAUDE.md`
 
