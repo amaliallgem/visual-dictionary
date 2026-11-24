@@ -3,6 +3,10 @@
 Newest entries first.
 
 ## 2026-11-24 · main
+Added a `sessions/` folder with a summary of the conversation that built this repo: goals, decisions, how the design changed, and next steps. It contains no personal data.
+- Files: `sessions/README.md`, `sessions/summary/2026-11-18_building-the-visual-dictionary.md`, `CHANGELOG.md`
+
+## 2026-11-24 · main
 Approved submissions now add their own changelog entry, in the same commit as the new catalog rows, so every change to the repo is logged here.
 - Files: `scripts/ingest_issue.py`, `.github/workflows/add-example.yml`, `CHANGELOG.md`
 
